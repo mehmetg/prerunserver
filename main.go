@@ -54,7 +54,7 @@ func main() {
 	arch := DownloadFile(link)
 	file := Unzip(arch)
 	fmt.Println("Starting Ngrok!")
-	defer ExecuteBinary(file, []string{"http", "4444"}).Wait()
+	defer ExecuteBinary(file, []string{"http", "4444", ">", "/dev/null", "&"}).Wait()
 	fmt.Println("Starting server!")
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", Index)
