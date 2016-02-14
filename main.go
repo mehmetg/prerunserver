@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"os"
-	//"github.com/mehmetg/go-tunnel"
 	"io"
 	"log"
 	"path"
@@ -18,15 +17,44 @@ import (
 	"io/ioutil"
 	"time"
 	"strings"
+	"runtime"
 )
 
 func main() {
-	fmt.Println("Downloading Ngrok Client!")
-	link := "https://dl.ngrok.com/ngrok_2.0.19_linux_amd64.zip"
+
+	lnx64 := "https://dl.ngrok.com/ngrok_2.0.19_linux_amd64.zip"
+	lnx32 := "https://dl.ngrok.com/ngrok_2.0.19_linux_386.zip"
+	win32 := "https://dl.ngrok.com/ngrok_2.0.19_windows_386.zip"
+	win64 := "https://dl.ngrok.com/ngrok_2.0.19_windows_amd64.zip"
+	mac32 := "https://dl.ngrok.com/ngrok_2.0.19_darwin_386.zip"
+	mac64 := "https://dl.ngrok.com/ngrok_2.0.19_darwin_amd64.zip"
+	var link string
+	switch runtime.GOOS {
+	case "linux":
+		if runtime.GOARCH == "386" {
+			link = lnx32
+		} else if runtime.GOARCH == "arm64" {
+			link = lnx64
+		}
+	case "darwin":
+		if runtime.GOARCH == "386" {
+			link = mac32
+		} else if runtime.GOARCH == "arm64" {
+			link = mac64
+		}
+	case "windows":
+		if runtime.GOARCH == "386" {
+			link = win32
+		} else if runtime.GOARCH == "arm64" {
+			link = win64
+		}
+	}
+
+	fmt.Printf("Downloading Ngrok Client for %q - %q !", runtime.GOOS, runtime.GOARCH)
 	arch := DownloadFile(link)
 	file := Unzip(arch)
 	fmt.Println("Starting Ngrok!")
-	ExecuteBinary(file, []string{"http", "4444"})
+	defer ExecuteBinary(file, []string{"http", "4444"}).Wait()
 	fmt.Println("Starting server!")
 	router := mux.NewRouter().StrictSlash(true)
 	router.HandleFunc("/", Index)
@@ -46,7 +74,7 @@ func main() {
 		panic(err)
 	}*/
 }
-func ExecuteBinary(bin string, args []string) {
+func ExecuteBinary(bin string, args []string) *exec.Cmd{
 	path := os.Getenv("PATH")
 	pwd, err :=  os.Getwd()
 	CheckError(err)
@@ -60,6 +88,7 @@ func ExecuteBinary(bin string, args []string) {
 	// Start command
 	err = cmd.Start()
 	CheckError(err)
+	return cmd
 }
 
 func CheckError(err error){
@@ -204,7 +233,7 @@ func FindTunnel() string{
 					case string:
 						strval, ok := val.(string)
 						if ok && strings.Contains(strval, "https://") {
-							fmt.Println(tunnel["public_url"])
+							//fmt.Println(tunnel["public_url"])
 							return strval
 						}
 					}
